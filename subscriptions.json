@@ -1,0 +1,287 @@
+{
+  "settings": {
+    "welcomeMessage": "👋 *Bem-vindo(a)!* \n\nVocê acaba de entrar em um espaço reservado para poucos. 🔒✨ Explore nossos planos abaixo e desbloqueie agora o acesso completo a conteúdos e benefícios exclusivos que *vão transformar sua experiência*. Assim que o pagamento for confirmado, seu acesso é liberado instantaneamente. 🚀",
+    "welcomeMedia": {
+      "isActive": false,
+      "fileId": null,
+      "type": null,
+      "audio": {
+        "isActive": false,
+        "fileId": null
+      }
+    },
+    "supportLink": "https://t.me/SEU_USUARIO_DE_SUPORTE",
+    "previewsChannel": {
+      "link": "https://t.me/seu_canal_de_previas",
+      "buttonText": "👀 espiar Prévias Exclusivas",
+      "isActive": false
+    },
+    "payment": {
+      "mercadoPago": {
+        "accessToken": null,
+        "isActive": false
+      },
+      "pushinpay": {
+        "apiToken": null,
+        "isActive": false
+      },
+      "triboPay": {
+        "apiToken": null,
+        "isActive": false
+      },
+      "pepper": {
+        "accessToken": null,
+        "isActive": false
+      }
+    },
+    "plans": {
+      "weekly": {
+        "name": "Semanal",
+        "price": 18.99,
+        "days": 7,
+        "isActive": true,
+        "offer_hash": null,
+        "product_hash": null,
+        "pepper_offer_hash": null,
+        "pepper_product_hash": null
+      },
+      "biweekly": {
+        "name": "Quinzenal",
+        "price": 14.99,
+        "days": 15,
+        "isActive": true,
+        "offer_hash": null,
+        "product_hash": null,
+        "pepper_offer_hash": null,
+        "pepper_product_hash": null
+      },
+      "monthly": {
+        "name": "Mensal",
+        "price": 24.99,
+        "days": 30,
+        "isActive": true,
+        "offer_hash": null,
+        "product_hash": null,
+        "pepper_offer_hash": null,
+        "pepper_product_hash": null
+      },
+      "annual": {
+        "name": "Anual",
+        "price": 249.99,
+        "days": 365,
+        "isActive": false,
+        "offer_hash": null,
+        "product_hash": null,
+        "pepper_offer_hash": null,
+        "pepper_product_hash": null
+      },
+      "lifetime": {
+        "name": "Vitalício",
+        "price": 499.99,
+        "days": 9999,
+        "isActive": false,
+        "offer_hash": null,
+        "product_hash": null,
+        "pepper_offer_hash": null,
+        "pepper_product_hash": null
+      }
+    },
+    "salesFunnel": {
+      "isActive": true,
+      "messages": {
+        "message1": {
+          "delay": 5,
+          "isActive": true,
+          "text": "Vi que você ficou interessado em nossos produtos, você acabou de ganhar 10%off 🚀🚀",
+          "media": {
+            "fileId": "CgACAgIAAxkBAAIB0GjzWElW-UsSIjaYAe5yxhNpvF_zAAJyEwAC-z5RSBUn3pkKdv4yNgQ",
+            "type": "animation"
+          },
+          "audio": {
+            "fileId": "AwACAgEAAxkBAAIB4mjzXOhQ3sC5RQiAVjaB6DiqfsC8AAKtDwACal-ZR_pGoQ3st8AONgQ",
+            "isActive": true
+          },
+          "useIndividualDiscount": true,
+          "individualDiscountPercentage": 10,
+          "individualDiscountValue": 1,
+          "individualUsePercentage": true
+        },
+        "message2": {
+          "delay": 30,
+          "isActive": true,
+          "text": "Trsssgttgf",
+          "media": {
+            "fileId": null,
+            "type": null
+          },
+          "audio": {
+            "fileId": null,
+            "isActive": false
+          },
+          "useIndividualDiscount": true,
+          "individualDiscountPercentage": 12,
+          "individualDiscountValue": 0,
+          "individualUsePercentage": true
+        },
+        "message3": {
+          "delay": 60,
+          "isActive": true,
+          "text": "💎 *Oferta Quase no Fim!*\n\nEsta é uma das melhores oportunidades que você terá. Não deixe escapar!",
+          "media": {
+            "fileId": "AgACAgEAAxkBAAICtGjzyq77HgHdnMrDbhcEpceLKpKRAAI7C2sbeZWhR7WEAsfghTAwAQADAgADeQADNgQ",
+            "type": "photo"
+          },
+          "audio": {
+            "fileId": null,
+            "isActive": false
+          },
+          "useIndividualDiscount": false,
+          "individualDiscountPercentage": 10,
+          "individualDiscountValue": 0,
+          "individualUsePercentage": true
+        },
+        "message4": {
+          "delay": 180,
+          "isActive": true,
+          "text": "🔥 *Desconto Final!*\n\nÚltimas horas para garantir seu acesso com condições especiais!",
+          "media": {
+            "fileId": "CgACAgIAAxkBAAICumjzyr9OLMjKVtHUtBWAfNzFwuueAAIqFAACNpxISFGJNCANsjeVNgQ",
+            "type": "animation"
+          },
+          "audio": {
+            "fileId": null,
+            "isActive": false
+          },
+          "useIndividualDiscount": false,
+          "individualDiscountPercentage": 10,
+          "individualDiscountValue": 0,
+          "individualUsePercentage": true
+        },
+        "message5": {
+          "delay": 720,
+          "isActive": true,
+          "text": "⏳ *ÚLTIMA OPORTUNIDADE!*\n\nEsta é realmente sua última chance de aproveitar esta oferta especial!",
+          "media": {
+            "fileId": null,
+            "type": null
+          },
+          "audio": {
+            "fileId": null,
+            "isActive": false
+          },
+          "useIndividualDiscount": true,
+          "individualDiscountPercentage": 50,
+          "individualDiscountValue": 0,
+          "individualUsePercentage": true
+        }
+      }
+    },
+    "admins": [
+      "8271563025"
+    ],
+    "upsell": {
+      "isActive": true,
+      "prePurchase": {
+        "isActive": true,
+        "productId": "vip_access",
+        "price": 49.9,
+        "message": "💎 *OFERTA ESPECIAL!*\n\nQuer *ACESSO VIP COMPLETO* por apenas R$ 49,90?\n\n✅ Conteúdo exclusivo\n✅ Grupo secreto\n✅ Suporte prioritário",
+        "forAllPlans": true
+      },
+      "postPurchase": [
+        {
+          "id": 1,
+          "isActive": true,
+          "type": "upgrade",
+          "daysAfter": 0,
+          "message": "🎉 *Parabéns pela compra!*\n\nQue tal fazer *UPGRADE para Mensal* por R$ 79,90?\n\n✅ 30 dias de acesso\n✅ Conteúdo extra\n✅ Economize 20%",
+          "price": 79.9,
+          "targetPlan": "monthly",
+          "forPlans": [
+            "weekly"
+          ]
+        },
+        {
+          "id": 2,
+          "isActive": true,
+          "type": "product",
+          "daysAfter": 3,
+          "message": "🔥 *OFERTA EXCLUSIVA!*\n\n*MENTORIA INDIVIDUAL* por R$ 99,90!\n\n1 hora de consultoria personalizada",
+          "price": 99.9,
+          "productName": "Mentoria Individual",
+          "forAllPlans": true
+        }
+      ],
+      "products": [
+        {
+          "id": "vip_access",
+          "name": "Acesso VIP",
+          "price": 49.9,
+          "description": "Conteúdo exclusivo e grupo secreto"
+        },
+        {
+          "id": "mentoring",
+          "name": "Mentoria Individual",
+          "price": 99.9,
+          "description": "1 hora de consultoria personalizada"
+        }
+      ],
+      "stats": {
+        "prePurchase": {
+          "views": 0,
+          "clicks": 0,
+          "sales": 0,
+          "revenue": 0
+        },
+        "postPurchase": {
+          "views": 0,
+          "clicks": 0,
+          "sales": 0,
+          "revenue": 0
+        }
+      }
+    }
+  },
+  "activeSubscriptions": [],
+  "allUsers": [
+    7594404834,
+    7669326594,
+    8243429869
+  ],
+  "pendingPayments": {},
+  "funnelUsers": {
+    "7669326594": {
+      "startTime": "2025-10-18T09:42:27.294Z",
+      "messagesSent": [
+        "message1",
+        "message2",
+        "message4",
+        "message3",
+        "message5"
+      ],
+      "hasPaid": false
+    },
+    "7594404834": {
+      "startTime": "2025-10-18T11:11:41.800Z",
+      "messagesSent": [
+        "message1",
+        "message2",
+        "message4",
+        "message3",
+        "message5"
+      ],
+      "hasPaid": false
+    },
+    "8243429869": {
+      "startTime": "2025-10-19T08:43:19.360Z",
+      "messagesSent": [
+        "message1",
+        "message2",
+        "message3",
+        "message4",
+        "message5"
+      ],
+      "hasPaid": false
+    }
+  }
+}

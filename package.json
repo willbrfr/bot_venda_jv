@@ -1,0 +1,29 @@
+{
+  "name": "will-melhor-dev",
+  "version": "1.0.0",
+  "description": "feito por @Sex_mode_adm sempre buscando soluçoes", 
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "vendas", 
+    "streaming"
+  ],
+  "author": "will",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5", 
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "qrcode": "^1.5.3",
+    "uuid": "^9.0.1"
+  }
+}
