@@ -582,6 +582,34 @@ function registerAdminHandlers(bot) {
         }
         // FIM DA SEÇÃO ADICIONADA
 
+        // ================== ADICIONADOS HANDLERS DE BACKUP (por índice/criação) ==================
+        // Substitui os antigos handlers por timestamp: agora suportamos restaurar por índice e criar backup via callback
+        if (data.startsWith('backup_restore_')) {
+            const backupIndex = parseInt(data.split('_')[2], 10);
+            const restoreResult = backupManager.restoreBackupByIndex(backupIndex);
+            
+            if (restoreResult.success) {
+                await bot.sendMessage(adminId, 
+                    "✅ *Backup restaurado com sucesso!*\n\n" +
+                    "O sistema foi restaurado. Reinicie o bot com /start para aplicar as mudanças.",
+                    { parse_mode: 'Markdown' }
+                );
+            } else {
+                await bot.sendMessage(adminId, `❌ Erro ao restaurar backup: ${restoreResult.error}`);
+            }
+            return;
+        } else if (data === 'backup_create') {
+            const result = backupManager.createBackup('manual_admin');
+            if (result.success) {
+                await bot.sendMessage(adminId, "✅ Backup manual criado com sucesso!");
+            } else {
+                await bot.sendMessage(adminId, `❌ Erro ao criar backup: ${result.error}`);
+            }
+            await sendBackupsPanel(bot, adminId);
+            return;
+        }
+        // ================================================================================
+
         switch (action) {
             case 'panel':
                 await sendAdminPanel(bot, adminId);
@@ -700,36 +728,6 @@ function registerAdminHandlers(bot) {
                     await sendWelcomeAudioPanel(bot, adminId);
                 } else if (params[0] === 'previews') {
                     await sendPreviewsChannelPanel(bot, adminId);
-                }
-                break;
-
-            case 'create':
-                if (params[0] === 'backup') {
-                    const result = backupManager.createBackup('manual_admin');
-                    if (result.success) {
-                        await bot.sendMessage(adminId, "✅ Backup manual criado com sucesso!");
-                    } else {
-                        await bot.sendMessage(adminId, `❌ Erro ao criar backup: ${result.error}`);
-                    }
-                    await sendBackupsPanel(bot, adminId);
-                }
-                break;
-
-            case 'restore':
-                if (params[0] === 'backup') {
-                    const timestamp = params.slice(1).join('_');
-                    const result = backupManager.restoreBackupByTimestamp(timestamp);
-                    
-                    if (result.success) {
-                        await bot.sendMessage(adminId, 
-                            "✅ *Backup restaurado com sucesso!*\n\n" +
-                            "O sistema foi restaurado para o estado do backup.\n" +
-                            "Reinicie o bot com /start para aplicar as mudanças.",
-                            { parse_mode: 'Markdown' }
-                        );
-                    } else {
-                        await bot.sendMessage(adminId, `❌ Erro ao restaurar backup: ${result.error}`);
-                    }
                 }
                 break;
 
@@ -1411,14 +1409,14 @@ function registerAdminHandlers(bot) {
 
         // ADICIONADO: Handler para alterar dias pós-compra do upsell
         if (state.type === 'set_post_upsell_days') {
-            const days = parseInt(text);
+            const days = parseInt(text, 10);
             if (isNaN(days) || days < 0) {
                 await bot.sendMessage(adminId, "❌ Dias inválidos. Use um número positivo.");
                 return;
             }
             
             const config = db.getSettings();
-            const upsell = (config.upsell?.postPurchase || []).find(u => u.id === parseInt(state.upsellId));
+            const upsell = (config.upsell?.postPurchase || []).find(u => u.id === parseInt(state.upsellId, 10));
             if (upsell) {
                 upsell.daysAfter = days;
                 db.updateSettings(config);
