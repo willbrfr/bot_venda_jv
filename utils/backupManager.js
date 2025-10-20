@@ -1,4 +1,4 @@
-// utils/backupManager.js - VERSÃO COMPLETA ATUALIZADA
+// utils/backupManager.js - CORREÇÃO DEFINITIVA
 const fs = require('fs');
 const path = require('path');
 
@@ -123,7 +123,7 @@ function getTimeAgo(date) {
     return `${diffDays} dias atrás`;
 }
 
-// Função para mostrar backups no admin
+// ✅ FUNÇÃO ATUALIZADA: getBackupsForAdmin
 function getBackupsForAdmin() {
     const backups = listBackups();
     
@@ -139,40 +139,69 @@ function getBackupsForAdmin() {
     
     backups.forEach((backup, index) => {
         const timeAgo = getTimeAgo(new Date(backup.date));
-        message += `*${index + 1}. ${backup.name}*\n`;
+        const shortName = backup.name.length > 20 ? 
+            backup.name.substring(0, 17) + '...' : backup.name;
+        
+        message += `*${index + 1}. ${shortName}*\n`;
         message += `   ⏰ ${timeAgo} | 💾 ${backup.size} KB\n\n`;
         
-        // ✅ CORREÇÃO CRÍTICA: CALLBACK_DATA CURTO (máximo 64 bytes)
-        // Extrai apenas a parte do timestamp para usar como ID único
-        const timestampPart = backup.name.replace('backup_', '').split('_')[0];
-        const callbackData = `admin_restore_${timestampPart}`;
+        // ✅ CORREÇÃO CRÍTICA: CALLBACK_DATA CURTO
+        // Usar índice em vez de timestamp para garantir < 64 bytes
+        const callbackData = `backup_restore_${index}`;
         
-        console.log(`🔍 Callback_data gerado: ${callbackData} (${callbackData.length} bytes)`);
+        console.log(`✅ Callback_data seguro: ${callbackData} (${callbackData.length} bytes)`);
         
         backupButtons.push([{ 
-            text: `🔄 ${index + 1}. ${backup.name.substring(0, 18)}...`,
+            text: `🔄 ${index + 1}. ${shortName}`,
             callback_data: callbackData
         }]);
     });
     
     message += `💡 *Total: ${backups.length} backups*`;
     
-    // Adicionar botões de ação
     backupButtons.push([
         { 
             text: '🆕 Criar Backup Agora', 
-            callback_data: 'admin_create_backup' 
+            callback_data: 'backup_create' 
         }
     ]);
     
     backupButtons.push([
         { 
-            text: '🔙 Voltar às Configurações', 
+            text: '🔙 Voltar', 
             callback_data: 'admin_settings' 
         }
     ]);
     
     return { message, keyboard: backupButtons };
+}
+
+// ✅ NOVA FUNÇÃO: getBackupByIndex
+function getBackupByIndex(index) {
+    const backups = listBackups();
+    if (index >= 0 && index < backups.length) {
+        return backups[index];
+    }
+    return null;
+}
+
+// ✅ ATUALIZAR restoreBackupByIndex
+function restoreBackupByIndex(index) {
+    try {
+        const backup = getBackupByIndex(index);
+        if (!backup) {
+            return { success: false, error: 'Backup não encontrado' };
+        }
+        return restoreBackup(backup.name);
+    } catch (error) {
+        console.error('❌ Erro ao restaurar backup:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+// Função para mostrar backups no admin (compatibilidade antiga)
+function getBackupsForAdminPanel() {
+    return getBackupsForAdmin();
 }
 
 // ✅ NOVA FUNÇÃO: Encontrar backup pelo timestamp
@@ -257,20 +286,17 @@ function getBackupInfo(backupName) {
     }
 }
 
-// ✅ FUNÇÃO PARA BACKUP HANDLERS (COMPATIBILIDADE)
-function getBackupsForAdminPanel() {
-    return getBackupsForAdmin();
-}
-
 module.exports = {
     createBackup,
     listBackups,
     restoreBackup,
-    restoreBackupByTimestamp, // ✅ NOVA FUNÇÃO
+    restoreBackupByTimestamp, // compatibilidade
+    restoreBackupByIndex, // nova
     startAutoBackup,
     ensureBackupDir,
     getBackupsForAdmin,
     getBackupInfo,
     getBackupsForAdminPanel,
-    findBackupByTimestamp // ✅ NOVA FUNÇÃO
+    getBackupByIndex: getBackupByIndex,
+    findBackupByTimestamp
 };
