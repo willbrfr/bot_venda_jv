@@ -182,6 +182,12 @@ class FunnelScheduler {
 
     async sendFunnelMessage(userId, messageKey, messageConfig) {
         try {
+            console.log(`🎯 [DEBUG CRÍTICO] sendFunnelMessage CHAMADO!`, {
+                userId,
+                messageKey,
+                hasDiscount: messageConfig.useIndividualDiscount
+            });
+
             let messageText = messageConfig.text || '';
             let discountText = '';
             let discountData = null;
@@ -196,7 +202,11 @@ class FunnelScheduler {
                         value: discountPercent,
                         code: `FUNNEL_${messageKey}_${userId.slice(-4)}`,
                         messageKey: messageKey,
-                        source: 'funnel'
+                        source: 'funnel',
+                        useIndividualDiscount: true,
+                        individualUsePercentage: true,
+                        individualDiscountPercentage: discountPercent,
+                        individualDiscountValue: 0
                     };
                 } else {
                     const discountValue = messageConfig.individualDiscountValue;
@@ -206,7 +216,11 @@ class FunnelScheduler {
                         value: discountValue,
                         code: `FUNNEL_${messageKey}_${userId.slice(-4)}`,
                         messageKey: messageKey,
-                        source: 'funnel'
+                        source: 'funnel',
+                        useIndividualDiscount: true,
+                        individualUsePercentage: false,
+                        individualDiscountPercentage: 0,
+                        individualDiscountValue: discountValue
                     };
                 }
                 
@@ -215,22 +229,35 @@ class FunnelScheduler {
                 if (!discountSaved) {
                     console.error(`❌ [FUNIL] Falha ao salvar desconto para ${userId}`);
                 } else {
-                    console.log(`💰 [FUNIL] Desconto salvo: ${userId} - ${discountData.type} ${discountData.value}`);
+                    console.log(`💰 [FUNIL] Desconto salvo: ${userId} - ${discountData.type} ${discountData.value}, messageKey: ${messageKey}`);
                 }
             }
 
             // Aplica desconto ao texto
             messageText += discountText;
 
-            // ✅ BOTÃO COM CALLBACK QUE APLICA O DESCONTO
+            // ✅ CORREÇÃO CRÍTICA: Incluir messageKey no callback_data
+            const callbackData = `funnel_buy_discount_${messageKey}`;
+            
+            console.log(`🎯 [DEBUG CRÍTICO] callback_data DEFINIDO:`, {
+                callback_data: callbackData,
+                messageKey: messageKey,
+                shouldBe: `funnel_buy_discount_${messageKey}`
+            });
+
             const keyboard = {
                 inline_keyboard: [
                     [{ 
                         text: `💳 Comprar com Desconto`, 
-                        callback_data: `funnel_buy:${messageKey}` // ✅ ENVIA A MENSAGEM ESPECÍFICA
+                        callback_data: callbackData // ✅ DEVE SER funnel_buy_discount_message2
                     }]
                 ]
             };
+
+            console.log(`🎯 [DEBUG CRÍTICO] Keyboard configurado:`, {
+                keyboard: keyboard,
+                callback_data: keyboard.inline_keyboard[0][0].callback_data
+            });
 
             // Envia áudio primeiro se estiver ativo
             if (messageConfig.audio && messageConfig.audio.isActive && messageConfig.audio.fileId) {
