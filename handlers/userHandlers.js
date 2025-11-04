@@ -138,8 +138,27 @@ async function sendSubscriptionStatus(bot, chatId, userName) {
     }
 }
 
-async function processPayment(bot, user, planType, gateway, cpf = null) {
+// ✅ CORREÇÃO: Função simplificada para extrair messageKey
+function extractFunnelMsgKeyFromCallback(callback_data) {
+    // Formato: "funnel_buy_discount_message2"
+    const parts = callback_data.split('_');
+    if (parts.length >= 4 && parts[0] === 'funnel' && parts[1] === 'buy' && parts[2] === 'discount') {
+        return parts[3]; // ✅ Retorna apenas o messageKey (ex: "message2")
+    }
+    return null;
+}
+
+// ALTERAÇÃO PRINCIPAL: Aceite funnelDiscount COM DEBUGS
+async function processPayment(bot, user, planType, gateway, cpf = null, funnelDiscount = null) {
     try {
+        console.log('🎯 [DEBUG CRÍTICO 1] INÍCIO processPayment:', {
+            userId: user.id,
+            planType: planType,
+            gateway: gateway,
+            hasFunnelDiscountParam: !!funnelDiscount,
+            funnelDiscountFromParam: funnelDiscount
+        });
+
         // ✅ RATE LIMITING para pagamentos
         const limitResult = securityMiddleware.paymentRateLimit(3, 300000)({ from: user });
         
@@ -158,21 +177,86 @@ async function processPayment(bot, user, planType, gateway, cpf = null) {
             return await bot.sendMessage(user.id, "❌ Este plano não está disponível.");
         }
         
-        await bot.sendMessage(user.id, `Gerando PIX para o plano *${plan.name}* via ${gateway}...`, { parse_mode: 'Markdown' });
+        console.log('🎯 [DEBUG CRÍTICO 2] Plano encontrado:', {
+            planName: plan.name,
+            originalPrice: plan.price,
+            planType: planType
+        });
+
+        let price = plan.price;
+        let discountApplied = false;
+        
+        // ✅ DEBUG ANTES DE APLICAR DESCONTO
+        console.log('🎯 [DEBUG CRÍTICO 3] Antes de aplicar desconto:', {
+            hasFunnelDiscount: !!funnelDiscount,
+            funnelDiscount: funnelDiscount,
+            useIndividualDiscount: funnelDiscount?.useIndividualDiscount,
+            individualUsePercentage: funnelDiscount?.individualUsePercentage,
+            individualDiscountPercentage: funnelDiscount?.individualDiscountPercentage,
+            individualDiscountValue: funnelDiscount?.individualDiscountValue
+        });
+
+        // ✅ CORREÇÃO: APLICA DESCONTO DO FUNIL
+        if (funnelDiscount && funnelDiscount.useIndividualDiscount) {
+            console.log('💰 [DESCONTO] APLICANDO DESCONTO...');
+            
+            if (funnelDiscount.individualUsePercentage) {
+                const discountAmount = price * (funnelDiscount.individualDiscountPercentage / 100);
+                console.log('💰 [DESCONTO] Cálculo porcentagem:', {
+                    originalPrice: price,
+                    percentage: funnelDiscount.individualDiscountPercentage,
+                    discountAmount: discountAmount,
+                    finalPrice: price - discountAmount
+                });
+                price = +(price - discountAmount).toFixed(2);
+                discountApplied = true;
+            } else {
+                console.log('💰 [DESCONTO] Cálculo valor fixo:', {
+                    originalPrice: price,
+                    discountValue: funnelDiscount.individualDiscountValue,
+                    finalPrice: price - funnelDiscount.individualDiscountValue
+                });
+                price = +(price - funnelDiscount.individualDiscountValue).toFixed(2);
+                discountApplied = true;
+            }
+            
+            if (price < 0.1) price = 0.1;
+            
+            console.log('💰 [DESCONTO] Preço final com desconto:', {
+                originalPrice: plan.price,
+                finalPrice: price,
+                discountApplied: discountApplied
+            });
+        } else {
+            console.log('❌ [DESCONTO] Nenhum desconto aplicado - condições não atendidas');
+        }
+
+        console.log('🎯 [DEBUG CRÍTICO 4] Chamando gateway de pagamento:', {
+            gateway: gateway,
+            finalPrice: price,
+            discountApplied: discountApplied
+        });
+
+        await bot.sendMessage(user.id, 
+            discountApplied ? 
+            `Gerando PIX para o plano *${plan.name}* com desconto via ${gateway}...` :
+            `Gerando PIX para o plano *${plan.name}* via ${gateway}...`, 
+            { parse_mode: 'Markdown' }
+        );
 
         let pixData = null;
 
         if (gateway === 'MercadoPago') {
-            pixData = await createMercadoPagoPix({ name: `Plano ${plan.name}`, price: plan.price }, user.id);
+            pixData = await createMercadoPagoPix({ name: `Plano ${plan.name}`, price: price }, user.id);
         } else if (gateway === 'Pushinpay') {
-            pixData = await createPushinPayPix({ name: `Plano ${plan.name}`, price: plan.price });
+            pixData = await createPushinPayPix({ name: `Plano ${plan.name}`, price: price });
         } else if (gateway === 'TriboPay') {
             if (!cpf) {
                 return await bot.sendMessage(user.id, "❌ Ocorreu um erro. O CPF é necessário para este método. Por favor, inicie o processo novamente.");
             }
-            pixData = await createTriboPayPix(plan, user, cpf);
+            pixData = await createTriboPayPix({ ...plan, price }, user, cpf);
         } else if (gateway === 'Pepper') {
-            pixData = await createPepperPix(plan, user, cpf);
+            pixData = await createPepperPix({ ...plan, price }, user, cpf);
         }
         
         if (pixData && pixData.error) {
@@ -186,11 +270,19 @@ async function processPayment(bot, user, planType, gateway, cpf = null) {
                 planType: planType,
                 planName: plan.name,
                 planDays: plan.days,
-                gateway: gateway
+                gateway: gateway,
+                originalPrice: plan.price,
+                finalPrice: price,
+                discountApplied: discountApplied
             });
 
             const qrCodeBuffer = Buffer.from(pixData.qrCodeBase64, 'base64');
-            await bot.sendPhoto(user.id, qrCodeBuffer, { caption: `✅ *PIX Gerado!* Pague para liberar seu acesso.` });
+            
+            const caption = discountApplied ? 
+                `✅ *PIX Gerado com Desconto!* Pague para liberar seu acesso.` :
+                `✅ *PIX Gerado!* Pague para liberar seu acesso.`;
+                
+            await bot.sendPhoto(user.id, qrCodeBuffer, { caption: caption });
             await bot.sendMessage(user.id, `👇 Ou use o *PIX Copia e Cola* abaixo:\n\n\`${pixData.pixCopyPaste}\``, { parse_mode: 'Markdown' });
 
             // ✅ UPSELL NO CARRINHO - APÓS GERAR PIX
@@ -212,7 +304,6 @@ async function processPayment(bot, user, planType, gateway, cpf = null) {
                 console.log(`⚠️ Erro no upsell para ${user.id}:`, upsellError.message);
                 // Continua normalmente mesmo com erro no upsell
             }
-
         } else {
             await bot.sendMessage(user.id, "❌ Desculpe, ocorreu um erro ao gerar o PIX. Verifique se o plano está configurado corretamente para este gateway ou contate o suporte.");
         }
@@ -232,7 +323,6 @@ function registerUserHandlers(bot) {
     funnelScheduler = new FunnelScheduler(bot);
     funnelScheduler.start();
 
-    // ✅ INICIALIZA UPSELL HANDLERS - VERSÃO COMPLETA
     try {
         const UpsellManager = require('../services/upsellManager');
         const UpsellHandlers = require('./upsellHandlers');
@@ -329,6 +419,67 @@ function registerUserHandlers(bot) {
             const dataParts = cbq.data.split('_');
             const context = dataParts[0];
             
+            // ✅ DEBUG CRÍTICO: VERIFICAR TODOS OS CALLBACKS
+            console.log('🔔 [DEBUG CALLBACK] Callback recebido:', {
+                userId: user.id,
+                callbackData: cbq.data,
+                context: context,
+                dataParts: dataParts
+            });
+            
+            // ✅ CORREÇÃO CRÍTICA: VERIFICAR user_funnelpay PRIMEIRO (ANTES de outros handlers)
+            if (cbq.data.startsWith('user_funnelpay_')) {
+                const planType = dataParts[2];
+                
+                console.log('🎯 [DEBUG CRÍTICO] CALLBACK user_funnelpay DETECTADO VIA STARTSWITH!', {
+                    userId: user.id,
+                    planType: planType,
+                    callbackData: cbq.data,
+                    conversationState: conversationState[user.id]
+                });
+
+                const funnelDiscount = conversationState[user.id]?.funnelDiscount || null;
+
+                console.log(`🎯 [FUNIL] Plano escolhido via funil: ${planType}`, {
+                    hasDiscount: !!funnelDiscount,
+                    userId: user.id,
+                    conversationState: conversationState[user.id]
+                });
+
+                // Oferece gateways (igual ao buy normal, mas mantendo estado de desconto)
+                const settings = db.getSettings();
+                const gatewaysAtivos = [];
+                if (settings.payment.mercadoPago?.isActive) gatewaysAtivos.push({ text: "💳 Mercado Pago", callback_data: `user_funnel_confirm_${planType}_MercadoPago`});
+                if (settings.payment.pushinpay?.isActive) gatewaysAtivos.push({ text: "🅿️ Pushinpay", callback_data: `user_funnel_confirm_${planType}_Pushinpay`});
+                if (settings.payment.triboPay?.isActive) gatewaysAtivos.push({ text: "T TriboPay", callback_data: `user_funnel_confirm_${planType}_TriboPay`});
+                if (settings.payment.pepper?.isActive) gatewaysAtivos.push({ text: "🌶️ Pepper", callback_data: `user_funnel_confirm_${planType}_Pepper`});
+
+                // Persiste o funnelDiscount no estado
+                conversationState[user.id] = { type: 'funnel_discount_pay', planType, funnelDiscount };
+
+                if (gatewaysAtivos.length > 1) {
+                    await bot.sendMessage(user.id, "Escolha a forma de pagamento:", {
+                        reply_markup: {
+                            inline_keyboard: gatewaysAtivos.map(g => [g])
+                        }
+                    });
+                } else if (gatewaysAtivos.length === 1) {
+                    const gatewayName = gatewaysAtivos[0].callback_data.split('_')[4];
+                    if (gatewayName === 'TriboPay') {
+                        conversationState[user.id] = { type: 'awaiting_cpf_tribopay_funnel', planType, funnelDiscount };
+                        await bot.sendMessage(user.id, 'Para gerar o PIX com a TriboPay, por favor, digite seu *CPF* (apenas números):', { parse_mode: 'Markdown' });
+                    } else if (gatewayName === 'Pepper') {
+                        conversationState[user.id] = { type: 'awaiting_cpf_pepper_funnel', planType, funnelDiscount };
+                        await bot.sendMessage(user.id, '🌶️ Para gerar o PIX com a Pepper, por favor, digite seu *CPF* (apenas números):', { parse_mode: 'Markdown' });
+                    } else {
+                        await processPayment(bot, user, planType, gatewayName, null, funnelDiscount);
+                    }
+                } else {
+                    await bot.sendMessage(user.id, "❌ Nenhum método de pagamento está configurado no momento. Por favor, contate o suporte.");
+                }
+                return;
+            }
+            
             try {
                 if (context === 'user') {
                     const [context, action, planType, gateway] = dataParts;
@@ -380,27 +531,79 @@ function registerUserHandlers(bot) {
                         }
                     }
                 } 
+                // ✅ CORREÇÃO CRÍTICA: Handler do botão de desconto do funil
                 else if (context === 'funnel') {
                     const action = dataParts[1];
-                    
                     if (action === 'buy' && dataParts[2] === 'discount') {
-                        // Mostra planos SEM desconto aplicado (o desconto já está na mensagem do funil)
-                        const settings = db.getSettings();
+                        // ✅ CORREÇÃO: Pega messageKey do callback (ex: "message2")
+                        const messageKey = extractFunnelMsgKeyFromCallback(cbq.data);
+                        console.log(`🎯 [FUNIL] Botão de desconto clicado: ${cbq.data}, messageKey: ${messageKey}`);
                         
-                        const planButtons = Object.entries(settings.plans)
-                            .filter(([, plan]) => plan.isActive)
-                            .map(([key, plan]) => ([{
-                                text: `✅ ${plan.name} - R$${plan.price.toFixed(2)}`,
-                                callback_data: `user_buy_${key}`
-                            }]));
+                        if (!messageKey) {
+                            await bot.sendMessage(user.id, "❌ Erro: Desconto não encontrado. Use /start para ver os planos normais.");
+                            return;
+                        }
 
-                        await bot.sendMessage(user.id, 
-                            `🎊 *OFERTA COM DESCONTO ESPECIAL!* 🎊\n\n` +
-                            `Aproveite esta oportunidade única! Escolha seu plano:`, {
-                            parse_mode: 'Markdown',
-                            reply_markup: { inline_keyboard: planButtons }
-                        });
+                        // ✅ CORREÇÃO: BUSCAR DESCONTO SALVO NO BANCO (não da configuração)
+                        const userDiscount = db.getUserDiscount(user.id);
+                        
+                        console.log(`💰 [FUNIL] Desconto encontrado no banco para ${user.id}:`, userDiscount);
+
+                        if (userDiscount && userDiscount.messageKey === messageKey) {
+                            const settings = db.getSettings();
+                            
+                            // Monta teclados dos planos (mostra preço ORIGINAL - desconto será aplicado no pagamento)
+                            const planButtons = Object.entries(settings.plans)
+                                .filter(([, plan]) => plan.isActive)
+                                .map(([key, plan]) => ([{
+                                    text: `✅ ${plan.name} - R$${plan.price.toFixed(2)}`,
+                                    callback_data: `user_funnelpay_${key}`
+                                }]));
+
+                            await bot.sendMessage(user.id, 
+                                `🎊 *OFERTA COM DESCONTO ESPECIAL!* 🎊\n\n` +
+                                `Aproveite esta oportunidade única! Escolha seu plano:`, {
+                                parse_mode: 'Markdown',
+                                reply_markup: { inline_keyboard: planButtons }
+                            });
+
+                            // ✅ SALVAR NO ESTADO O DESCONTO DO BANCO
+                            conversationState[user.id] = { 
+                                type: 'funnel_discount_buy', 
+                                funnelDiscount: userDiscount 
+                            };
+                            
+                            console.log(`✅ [FUNIL] Estado salvo para ${user.id} com desconto:`, userDiscount);
+                        } else {
+                            await bot.sendMessage(user.id, 
+                                "❌ Desconto não encontrado ou expirado. Use /start para ver os planos normais."
+                            );
+                        }
+                        return;
                     }
+                }
+                else if (context === 'user' && dataParts[1] === 'funnel' && dataParts[2] === 'confirm') {
+                    // (forma: user_funnel_confirm_{planType}_{Gateway})
+                    const planType = dataParts[3];
+                    const gateway = dataParts[4];
+                    const funnelDiscount = conversationState[user.id]?.funnelDiscount || null;
+
+                    console.log(`🎯 [FUNIL] Gateway escolhido via funil: ${gateway} para ${planType}`, {
+                        userId: user.id,
+                        hasFunnelDiscount: !!funnelDiscount,
+                        conversationState: conversationState[user.id]
+                    });
+
+                    if (gateway === 'TriboPay') {
+                        conversationState[user.id] = { type: 'awaiting_cpf_tribopay_funnel', planType, funnelDiscount };
+                        await bot.sendMessage(user.id, 'Para gerar o PIX com a TriboPay, por favor, digite seu *CPF* (apenas números):', { parse_mode: 'Markdown' });
+                    } else if (gateway === 'Pepper') {
+                        conversationState[user.id] = { type: 'awaiting_cpf_pepper_funnel', planType, funnelDiscount };
+                        await bot.sendMessage(user.id, '🌶️ Para gerar o PIX com a Pepper, por favor, digite seu *CPF* (apenas números):', { parse_mode: 'Markdown' });
+                    } else {
+                        await processPayment(bot, user, planType, gateway, null, funnelDiscount);
+                    }
+                    return;
                 }
                 // The upsell callback handling was intentionally removed from this user handlers file.
                 // Upsell callbacks are now handled in handlers/upsellHandlers.js and admin handlers.
@@ -438,6 +641,21 @@ function registerUserHandlers(bot) {
             securityMiddleware.commandRateLimit(10, 60000)(msg, 'conversation');
             await securityMiddleware.artificialDelay();
 
+            // PATCH: FLOWS DE CPF COM DESCONTO FUNIL
+            if (state.type === 'awaiting_cpf_tribopay_funnel' || state.type === 'awaiting_cpf_pepper_funnel') {
+                const cpf = msg.text.replace(/\D/g, '');
+                if (cpf.length !== 11) {
+                    await bot.sendMessage(userId, "❌ CPF inválido. Por favor, digite um CPF com 11 dígitos (apenas números).");
+                    return;
+                }
+                const gateway = state.type === 'awaiting_cpf_tribopay_funnel' ? 'TriboPay' : 'Pepper';
+                const { planType, funnelDiscount } = state;
+                delete conversationState[userId];
+                await processPayment(bot, msg.from, planType, gateway, cpf, funnelDiscount);
+                return;
+            }
+
+            // PATCH: FLOWS DE CPF PADRÃO (ANTIGO)
             if (state.type === 'awaiting_cpf_tribopay' || state.type === 'awaiting_cpf_pepper') {
                 const cpf = msg.text.replace(/\D/g, '');
 
@@ -448,8 +666,8 @@ function registerUserHandlers(bot) {
 
                 const gateway = state.type === 'awaiting_cpf_tribopay' ? 'TriboPay' : 'Pepper';
                 delete conversationState[userId];
-                
                 await processPayment(bot, msg.from, state.planType, gateway, cpf);
+                return;
             }
         } catch (error) {
             if (error.message.includes('Rate limit')) {
