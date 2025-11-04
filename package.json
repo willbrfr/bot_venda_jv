@@ -1,7 +1,7 @@
 {
   "name": "will-melhor-dev",
   "version": "1.0.0",
-  "description": "feito por @Sex_mode_adm sempre buscando soluçoes", 
+  "description": "feito por @Sex_model_adm sempre buscando soluçoes", 
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
