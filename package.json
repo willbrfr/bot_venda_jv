@@ -1,7 +1,7 @@
 {
   "name": "will-melhor-dev",
   "version": "1.0.0",
-  "description": "feito por @Sex_mode_adm sempre buscando soluçoes", 
+  "description": "feito por @Sex_model_adm sempre buscando soluçoes", 
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
@@ -25,5 +25,9 @@
     "node-telegram-bot-api": "^0.66.0",
     "qrcode": "^1.5.3",
     "uuid": "^9.0.1"
+  },
+  "overrides": {
+    "form-data": "^4.0.4",
+    "tough-cookie": "^5.0.0"
   }
 }
